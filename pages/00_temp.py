@@ -77,7 +77,7 @@ if not birthday_df.empty:
         vmax = valid_temps.max()
         norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
         
-        # HTML/CSS 기반의 인터랙티브 스트라이프 컨테이너 생성
+        # HTML/CSS 기반의 인터랙티브 스트라이프 컨테이너 생성 (툴팁 스타일 추가)
         html_code = """
         <style>
             .stripe-container {
@@ -85,8 +85,8 @@ if not birthday_df.empty:
                 width: 100%;
                 height: 250px;
                 border-radius: 8px;
-                overflow: hidden;
                 box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                margin-top: 60px; /* 툴팁이 뜰 공간 확보 */
                 margin-bottom: 20px;
                 background-color: #f0f2f6;
             }
@@ -96,15 +96,56 @@ if not birthday_df.empty:
                 transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.2s;
                 cursor: pointer;
                 border-right: 1px solid rgba(255,255,255,0.1);
+                position: relative; /* 툴팁 위치의 기준점 */
             }
+            .stripe:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+            .stripe:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+            
             .stripe:hover {
                 transform: scaleY(1.15); /* 바운스 효과 */
                 filter: brightness(1.2);
                 z-index: 10;
                 box-shadow: 0 0 10px rgba(0,0,0,0.3);
             }
-            .tooltip-text {
+            
+            /* 커스텀 말풍선(툴팁) 스타일 */
+            .tooltip-content {
                 visibility: hidden;
+                width: max-content;
+                min-width: 100px;
+                background-color: rgba(40, 40, 40, 0.95);
+                color: #ffffff;
+                text-align: center;
+                border-radius: 6px;
+                padding: 10px;
+                position: absolute;
+                z-index: 100;
+                bottom: 115%; /* 스트라이프 위로 띄움 */
+                left: 50%;
+                transform: translateX(-50%); /* 가운데 정렬 */
+                opacity: 0;
+                transition: opacity 0.2s;
+                font-size: 0.85em;
+                line-height: 1.5;
+                pointer-events: none; /* 마우스 간섭 방지 */
+                box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
+            }
+            
+            /* 툴팁 아래쪽 뾰족한 꼬리 */
+            .tooltip-content::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -6px;
+                border-width: 6px;
+                border-style: solid;
+                border-color: rgba(40, 40, 40, 0.95) transparent transparent transparent;
+            }
+
+            .stripe:hover .tooltip-content {
+                visibility: visible;
+                opacity: 1;
             }
         </style>
         <div class="stripe-container">
@@ -113,19 +154,28 @@ if not birthday_df.empty:
         # 각 연도별로 스트라이프(div) 그리기
         for _, row in birthday_df.iterrows():
             year = int(row['연도'])
-            temp = row['최고기온(℃)']
+            max_t = row['최고기온(℃)']
+            min_t = row['최저기온(℃)']
+            avg_t = row['평균기온(℃)']
             
-            if pd.isna(temp):
+            if pd.isna(max_t):
                 # 데이터가 없는 연도 (예: 한국전쟁 시기)
                 color = "#cccccc"
-                tooltip = f"{year}년: 기상 데이터 유실"
+                tooltip_html = f"<strong>{year}년</strong><br/>기상 데이터 유실"
             else:
                 # 기온에 따른 색상 추출
-                rgba = cmap(norm(temp))
+                rgba = cmap(norm(max_t))
                 color = mcolors.to_hex(rgba)
-                tooltip = f"{year}년 최고기온: {temp}℃"
                 
-            html_code += f"<div class='stripe' style='background-color: {color};' title='{tooltip}'></div>"
+                # 결측치 처리 (최저/평균 기온이 없는 경우 대비)
+                avg_str = f"{avg_t:.1f}℃" if not pd.isna(avg_t) else "-"
+                min_str = f"{min_t:.1f}℃" if not pd.isna(min_t) else "-"
+                
+                # 툴팁에 들어갈 내용 구성
+                tooltip_html = f"<strong>{year}년</strong><br/>최고: {max_t:.1f}℃<br/>평균: {avg_str}<br/>최저: {min_str}"
+                
+            # HTML 요소 안에 툴팁(span) 포함
+            html_code += f"<div class='stripe' style='background-color: {color};'><span class='tooltip-content'>{tooltip_html}</span></div>"
             
         html_code += "</div>"
         
