@@ -113,113 +113,40 @@ else:
 base_yr = int(base_decade)
 target_yr = int(target_decade)
 
-# HTML/CSS: 실제 종이 영수증 형태의 직관적인 디자인
-receipt_html = f"""
-<style>
-    .thermal-receipt-wrapper {{
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        margin-bottom: 30px;
-    }}
-    .thermal-receipt {{
-        background-color: #ffffff;
-        width: 340px;
-        padding: 30px 25px;
-        box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
-        font-family: 'Courier New', Courier, monospace;
-        color: #000;
-        border: 1px solid #ddd;
-    }}
-    .receipt-header h2 {{
-        text-align: center;
-        margin: 0 0 5px 0;
-        font-size: 1.5em;
-        font-weight: 900;
-    }}
-    .receipt-header p {{
-        text-align: center;
-        margin: 0;
-        font-size: 0.9em;
-        color: #333;
-    }}
-    .dash-divider {{
-        border-bottom: 1px dashed #000;
-        margin: 15px 0;
-    }}
-    .receipt-line {{
-        margin-bottom: 5px;
-        font-size: 0.95em;
-        line-height: 1.4;
-    }}
-    .r-label {{
-        font-weight: bold;
-    }}
-    .total-line {{
-        text-align: center;
-        font-size: 1.1em;
-        font-weight: bold;
-        margin-top: 10px;
-    }}
-    .receipt-footer {{
-        text-align: center;
-        font-size: 0.8em;
-        color: #555;
-        margin-top: 20px;
-    }}
-</style>
+# HTML 대신 순수 텍스트 기반 영수증 포맷 구성
+receipt_text = f"""
+========================================
+              기후 변화 영수증
+           CLIMATE CHANGE RECEIPT
+========================================
+가맹점:   지구 (Earth)
+고객명:   대한민국 서울 시민
+비교기간: {base_yr}년대 VS {target_yr}년대
+발급일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+----------------------------------------
+항목:     {item_hw_name}
+수량:     {'+' if diff_hw > 0 else ''}{diff_hw}일
+결제금액: {cost_hw}
 
-<div class="thermal-receipt-wrapper">
-    <div class="thermal-receipt">
-        <div class="receipt-header">
-            <h2>기후 변화 영수증</h2>
-            <p>CLIMATE CHANGE RECEIPT</p>
-            <p style="margin-top: 10px;">가맹점: 지구 (Earth)</p>
-            <p>비교기간: {base_yr}년대 VS {target_yr}년대</p>
-        </div>
-        
-        <div class="dash-divider"></div>
-        
-        <div class="receipt-item">
-            <div class="receipt-line"><span class="r-label">항목:</span> {item_hw_name}</div>
-            <div class="receipt-line"><span class="r-label">수량:</span> {'+' if diff_hw > 0 else ''}{diff_hw}일</div>
-            <div class="receipt-line"><span class="r-label">결제금액:</span> {cost_hw}</div>
-        </div>
-        
-        <div class="dash-divider"></div>
-        
-        <div class="receipt-item">
-            <div class="receipt-line"><span class="r-label">항목:</span> {item_tn_name}</div>
-            <div class="receipt-line"><span class="r-label">수량:</span> {'+' if diff_tn > 0 else ''}{diff_tn}일</div>
-            <div class="receipt-line"><span class="r-label">결제금액:</span> {cost_tn}</div>
-        </div>
-        
-        <div class="dash-divider"></div>
-        
-        <div class="receipt-item">
-            <div class="receipt-line"><span class="r-label">항목:</span> {item_cw_name}</div>
-            <div class="receipt-line"><span class="r-label">수량:</span> {'+' if diff_cw > 0 else ''}{diff_cw}일</div>
-            <div class="receipt-line"><span class="r-label">결제금액:</span> {cost_cw}</div>
-        </div>
-        
-        <div class="dash-divider"></div>
-        
-        <div class="total-line">
-            합계: {total_evaluation}
-        </div>
-        
-        <div class="dash-divider"></div>
-        
-        <div class="receipt-footer">
-            우리가 배출한 탄소,<br>결국 우리에게 비용으로 돌아옵니다.<br>
-            발급일시: {datetime.now().strftime('%Y-%m-%d')}
-        </div>
-    </div>
-</div>
+----------------------------------------
+항목:     {item_tn_name}
+수량:     {'+' if diff_tn > 0 else ''}{diff_tn}일
+결제금액: {cost_tn}
+
+----------------------------------------
+항목:     {item_cw_name}
+수량:     {'+' if diff_cw > 0 else ''}{diff_cw}일
+결제금액: {cost_cw}
+----------------------------------------
+합계 상태: {total_evaluation}
+========================================
+우리가 배출한 탄소, 
+결국 우리에게 비용으로 돌아옵니다.
+========================================
 """
 
-# 렌더링
-st.markdown(receipt_html, unsafe_allow_html=True)
+# Streamlit의 code 블록을 사용해 텍스트 형식으로 깔끔하게 렌더링
+st.code(receipt_text, language="text")
 
 # 추가 통계: 기준점 및 변화 설명
 with st.expander("📊 원본 데이터 자세히 보기"):
