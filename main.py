@@ -46,7 +46,6 @@ st.markdown("""
         animation: snowFall linear infinite;
         z-index: 1;
     }
-    /* 눈송이마다 떨어지는 속도와 위치를 다르게 설정 */
     .snow:nth-child(1) { left: 10%; animation-duration: 4s; animation-delay: 0s; }
     .snow:nth-child(2) { left: 25%; animation-duration: 5s; animation-delay: 1s; font-size: 0.9rem; }
     .snow:nth-child(3) { left: 40%; animation-duration: 3.5s; animation-delay: 2s; }
@@ -54,7 +53,7 @@ st.markdown("""
     .snow:nth-child(5) { left: 75%; animation-duration: 4.5s; animation-delay: 1.5s; }
     .snow:nth-child(6) { left: 90%; animation-duration: 5.5s; animation-delay: 0.2s; font-size: 0.8rem; }
 
-    /* 트리 영역을 고정하여 오너먼트가 자연스럽게 배치되도록 함 */
+    /* 트리 영역 */
     .tree-box {
         position: relative;
         width: 320px;
@@ -94,7 +93,7 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
 
-    /* 🌟 오너먼트의 반짝임 & 살랑거리는 애니메이션 */
+    /* 🌟 오너먼트 애니메이션 */
     @keyframes sway {
         0%, 100% { transform: rotate(-10deg); filter: brightness(1); }
         50% { transform: rotate(10deg); filter: brightness(1.3) drop-shadow(0 0 10px rgba(255,215,0,0.8)); }
@@ -108,7 +107,6 @@ st.markdown("""
         transition: transform 0.2s;
         z-index: 10;
     }
-    /* 각 오너먼트가 제각각 움직이도록 딜레이 추가 */
     .ornament:nth-child(even) { animation-duration: 3.5s; animation-direction: reverse; }
     .ornament:nth-child(3n) { animation-duration: 4s; }
 
@@ -118,7 +116,7 @@ st.markdown("""
         filter: drop-shadow(0 0 20px #FFD700);
     }
     
-    /* 호버 시 나타나는 예쁜 말풍선 툴팁 */
+    /* 호버 시 툴팁 */
     .message-tooltip {
         visibility: hidden;
         width: 220px;
@@ -174,7 +172,6 @@ ornament_positions = {
 html_elements = []
 html_elements.append("<div class='tree-wrapper'>")
 
-# 배경에 내리는 눈송이들 추가
 for _ in range(6):
     html_elements.append("<div class='snow'>❄️</div>")
 
@@ -185,7 +182,6 @@ html_elements.append("<div class='tree-layer layer2'></div>")
 html_elements.append("<div class='tree-layer layer3'></div>")
 html_elements.append("<div class='trunk'></div>")
 
-# 오너먼트 생성
 filled_icons = ["🌟", "🍎", "🎀", "🔔", "🎁", "🔮", "💖", "🌈", "🧸", "🍀"]
 
 for idx in range(1, 11):
@@ -194,12 +190,9 @@ for idx in range(1, 11):
     tooltip_text = msg if msg else "비어있는 자리입니다.<br>아래에서 메시지를 달아주세요!"
     
     pos = ornament_positions[idx]
-    ornament_html = f"""
-    <div class='ornament' style='bottom: {pos["bottom"]}; left: {pos["left"]};'>
-        {icon}
-        <div class='message-tooltip'>{tooltip_text}</div>
-    </div>
-    """
+    
+    # [수정된 부분] 들여쓰기로 인한 코드 블록 인식 오류를 막기 위해 HTML을 한 줄의 문자열로 처리합니다.
+    ornament_html = f"<div class='ornament' style='bottom: {pos['bottom']}; left: {pos['left']};'>{icon}<div class='message-tooltip'>{tooltip_text}</div></div>"
     html_elements.append(ornament_html)
 
 html_elements.append("</div></div>")
@@ -213,7 +206,7 @@ empty_slots = [i for i in range(1, 11) if not st.session_state.tree_messages[i]]
 
 if not empty_slots:
     st.success("나무에 모든 마음이 가득 찼습니다! 🎄✨")
-    st.snow() # Streamlit 기본 눈 효과 추가 실행
+    st.snow() 
 else:
     with st.form("message_form", clear_on_submit=True):
         col1, col2 = st.columns([1, 3])
