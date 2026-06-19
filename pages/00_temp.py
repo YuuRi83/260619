@@ -1,12 +1,12 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
-from datetime import datetime
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # 페이지 기본 설정
-st.set_page_config(page_title="시간여행자의 날씨 일기", page_icon="🕰️", layout="centered")
+st.set_page_config(page_title="나의 탄생일 기온 컬러 바운스", page_icon="🎨", layout="wide")
 
-# 데이터 로드 및 전처리
+# 데이터 로드 및 전처리 (캐싱)
 @st.cache_data
 def load_data():
     file_name = 'ta_20260619190504.csv'
@@ -27,138 +27,134 @@ def load_data():
     df['일'] = df['날짜'].dt.day
     return df
 
-# 일기장 타이핑 애니메이션을 위한 커스텀 함수
-def render_typewriter(text):
-    # 자바스크립트에 넣기 위해 줄바꿈 문자를 HTML 태그로 변경
-    text_for_js = text.replace('\n', '<br>').replace("'", "\\'")
-    
-    # HTML + CSS + JS 코드로 애니메이션 구현
-    html_code = f"""
-    <div style="
-        font-family: 'Gowun Dodum', sans-serif;
-        font-size: 1.1rem;
-        line-height: 1.8;
-        padding: 25px;
-        background-color: #fdfbf7;
-        color: #333;
-        border: 1px solid #e0d8c3;
-        border-radius: 10px;
-        box-shadow: 3px 3px 10px rgba(0,0,0,0.05);
-        min-height: 200px;
-    ">
-        <span id="diary-text"></span><span id="cursor" style="animation: blink 1s infinite;">✍️</span>
-    </div>
-    
-    <style>
-        /* 감성적인 한글 폰트 불러오기 */
-        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
-        
-        /* 커서 깜빡임 효과 */
-        @keyframes blink {{
-            0% {{opacity: 1;}}
-            50% {{opacity: 0;}}
-            100% {{opacity: 1;}}
-        }}
-    </style>
-    
-    <script>
-        const text = '{text_for_js}';
-        let i = 0;
-        const element = document.getElementById("diary-text");
-        const cursor = document.getElementById("cursor");
-        
-        function typeWriter() {{
-            if (i < text.length) {{
-                // <br> 태그 처리 (줄바꿈)
-                if (text.substring(i, i+4) === '<br>') {{
-                    element.innerHTML += '<br>';
-                    i += 4;
-                }} else {{
-                    // 한 글자씩 출력
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                }}
-                setTimeout(typeWriter, 40); // 숫자가 작을수록 타이핑 속도가 빠름
-            }} else {{
-                // 타이핑이 끝나면 연필 이모지 숨기기
-                cursor.style.display = 'none';
-            }}
-        }}
-        
-        // 화면이 로드된 후 약간의 지연시간을 두고 타이핑 시작
-        setTimeout(typeWriter, 500);
-    </script>
-    """
-    # 스트림릿에 HTML 컴포넌트 렌더링
-    components.html(html_code, height=300, scrolling=True)
-
-# ----------------- 앱 UI -----------------
-st.title("🕰️ 시간여행자의 날씨 일기")
-st.markdown("과거의 오늘, 서울의 날씨는 어땠을까요? 날짜를 고르면 **그 시절의 일기장**이 실시간으로 쓰여집니다.")
-
-with st.spinner("과거의 기상 기록을 펼치는 중..."):
+# 데이터 로딩
+with st.spinner("색상을 추출하는 중..."):
     df = load_data()
 
-st.sidebar.header("타임머신 설정 ⚙️")
+# ----------------- 앱 UI -----------------
+st.title("🎨 나의 탄생일 기온 컬러 바운스")
+st.markdown("""
+내가 태어난 날, 세상의 온도는 어떻게 변해왔을까요? 
+지구 온난화 스트라이프(Warming Stripes) 아트를 기반으로 **나만의 생일 온도 바코드**를 만들어보세요.
+선 위에 마우스를 올리면 해당 연도의 기온 정보가 나타납니다!
+""")
 
-years = df['연도'].dropna().unique().tolist()
-selected_year = st.sidebar.selectbox("연도 (Year)", years, index=len(years)-1)
+# 사이드바: 생일 입력 설정창
+st.sidebar.header("나의 탄생일 입력 🎂")
 
-months = df[df['연도'] == selected_year]['월'].unique().tolist()
-selected_month = st.sidebar.selectbox("월 (Month)", sorted(months))
+# 1. 연도 선택
+min_year = int(df['연도'].min())
+max_year = int(df['연도'].max())
+birth_year = st.sidebar.number_input("태어난 연도 (Year)", min_value=min_year, max_value=max_year, value=2000)
 
-days = df[(df['연도'] == selected_year) & (df['월'] == selected_month)]['일'].unique().tolist()
-selected_day = st.sidebar.selectbox("일 (Day)", sorted(days))
+# 2. 월 선택
+birth_month = st.sidebar.selectbox("태어난 월 (Month)", list(range(1, 13)), index=4)
 
-selected_data = df[(df['연도'] == selected_year) & (df['월'] == selected_month) & (df['일'] == selected_day)]
+# 3. 일 선택 (해당 월에 맞는 일수 동적 제공)
+days_in_month = df[df['월'] == birth_month]['일'].max()
+birth_day = st.sidebar.selectbox("태어난 일 (Day)", list(range(1, int(days_in_month) + 1)), index=14)
 
-if not selected_data.empty:
-    row = selected_data.iloc[0]
-    avg_t = row['평균기온(℃)']
-    min_t = row['최저기온(℃)']
-    max_t = row['최고기온(℃)']
+st.sidebar.markdown("---")
+st.sidebar.info("💡 **Tip:** 추운 해는 파란색으로, 더운 해는 붉은색으로 표시됩니다. 색이 갈수록 붉어지고 있다면 기후 변화의 증거일 수 있습니다!")
+
+# 선택된 생일 데이터 필터링 (태어난 해부터 마지막 연도까지 매년 그 날짜)
+birthday_df = df[(df['월'] == birth_month) & (df['일'] == birth_day) & (df['연도'] >= birth_year)].copy()
+birthday_df = birthday_df.sort_values('연도')
+
+if not birthday_df.empty:
+    # --- 시각적 아트워크 (컬러 바운스) 생성 로직 ---
+    st.subheader(f"✨ {birth_year}년부터 기록된 {birth_month}월 {birth_day}일의 색깔")
     
-    st.subheader(f"📅 {int(selected_year)}년 {int(selected_month)}월 {int(selected_day)}일의 기록")
+    # 색상 맵 설정 (파랑 -> 하양 -> 빨강)
+    cmap = plt.get_cmap('RdBu_r') 
     
-    if pd.isna(avg_t) or pd.isna(min_t) or pd.isna(max_t):
-        st.warning("아쉽게도 이 날은 역사적 사유로 인해 기온 데이터가 유실되었습니다.")
-    else:
-        diff_t = max_t - min_t
+    # 전체 기간이 아닌 '해당 날짜의 역대 최고/최저 기온'을 기준으로 색상 정규화 (대비 극대화)
+    # 데이터가 비어있지 않은 값만 사용하여 최소/최대값 구하기
+    valid_temps = birthday_df['최고기온(℃)'].dropna()
+    
+    if not valid_temps.empty:
+        vmin = valid_temps.min()
+        vmax = valid_temps.max()
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
         
-        # 기온 데이터 수치 출력
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("평균기온", f"{avg_t:.1f}℃")
-        col2.metric("최저기온", f"{min_t:.1f}℃")
-        col3.metric("최고기온", f"{max_t:.1f}℃")
-        col4.metric("일교차", f"{diff_t:.1f}℃")
+        # HTML/CSS 기반의 인터랙티브 스트라이프 컨테이너 생성
+        html_code = """
+        <style>
+            .stripe-container {
+                display: flex;
+                width: 100%;
+                height: 250px;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                margin-bottom: 20px;
+                background-color: #f0f2f6;
+            }
+            .stripe {
+                flex: 1;
+                height: 100%;
+                transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.2s;
+                cursor: pointer;
+                border-right: 1px solid rgba(255,255,255,0.1);
+            }
+            .stripe:hover {
+                transform: scaleY(1.15); /* 바운스 효과 */
+                filter: brightness(1.2);
+                z-index: 10;
+                box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            }
+            .tooltip-text {
+                visibility: hidden;
+            }
+        </style>
+        <div class="stripe-container">
+        """
         
+        # 각 연도별로 스트라이프(div) 그리기
+        for _, row in birthday_df.iterrows():
+            year = int(row['연도'])
+            temp = row['최고기온(℃)']
+            
+            if pd.isna(temp):
+                # 데이터가 없는 연도 (예: 한국전쟁 시기)
+                color = "#cccccc"
+                tooltip = f"{year}년: 기상 데이터 유실"
+            else:
+                # 기온에 따른 색상 추출
+                rgba = cmap(norm(temp))
+                color = mcolors.to_hex(rgba)
+                tooltip = f"{year}년 최고기온: {temp}℃"
+                
+            html_code += f"<div class='stripe' style='background-color: {color};' title='{tooltip}'></div>"
+            
+        html_code += "</div>"
+        
+        # 스트림릿에 HTML 렌더링
+        st.markdown(html_code, unsafe_allow_html=True)
+        
+        # --- 데이터 분석 요약 ---
         st.divider()
+        st.subheader("📊 내 생일 기온 TMI (Too Much Information)")
         
-        # 스토리 생성
-        story = f"[{int(selected_year)}년의 당신에게...]\n\n"
+        # 유효한 데이터만 필터링하여 통계 계산
+        stats_df = birthday_df.dropna(subset=['최고기온(℃)'])
         
-        if min_t < 0:
-            story += "아침에 눈을 뜨니 방 안의 물그릇이 꽁꽁 얼어붙었습니다! 문틈으로 스며드는 매서운 칼바람에 이불 밖으로 나오기 무섭네요. 가장 두꺼운 솜옷을 단단히 껴입고 나서야 합니다. 🥶"
-            st.snow()
-        elif min_t < 10:
-            story += "아침저녁으로 제법 쌀쌀한 기운이 돕니다. 따뜻한 아랫목이나 난로가 생각나는 날씨네요. 외출 시 겉옷을 꼭 챙기세요."
-        elif min_t > 25:
-            story += "밤이 되어도 열기가 식지 않는 열대야가 찾아왔습니다. 부채질을 아무리 해도 잠들기 어려운 덥고 끈적한 밤이네요. 🥵"
-        else:
-            story += "아침저녁으로는 활동하기 무난하고 상쾌한 기온입니다."
+        if not stats_df.empty:
+            hottest_row = stats_df.loc[stats_df['최고기온(℃)'].idxmax()]
+            coldest_row = stats_df.loc[stats_df['최고기온(℃)'].idxmin()]
+            avg_temp_all = stats_df['최고기온(℃)'].mean()
             
-        if max_t > 33:
-            story += "\n\n한낮에는 태양이 찌는 듯이 내리쬡니다. 가급적 시원한 그늘이나 대청마루에서 한낮의 폭염을 피하는 것이 좋겠습니다. ☀️💦"
-        elif max_t > 28:
-            story += "\n\n낮에는 이마에 땀이 맺힐 정도로 꽤 더운 날씨입니다. 시원한 우물물로 등목을 하면 딱 좋을 것 같네요!"
+            col1, col2, col3 = st.columns(3)
+            col1.metric("가장 뜨거웠던 생일 🔥", f"{int(hottest_row['연도'])}년", f"{hottest_row['최고기온(℃)']}℃")
+            col2.metric("가장 서늘했던 생일 ❄️", f"{int(coldest_row['연도'])}년", f"{coldest_row['최고기온(℃)']}℃")
+            col3.metric("내 생일 평균 최고기온 🌡️", f"{avg_temp_all:.1f}℃")
             
-        if diff_t > 15:
-            story += f"\n\n🚨 주의: 오늘은 하루 사이 온도 변화(일교차)가 무려 {diff_t:.1f}도나 됩니다! 아침에는 오들오들 떨리다가도 한낮에는 땀이 뻘뻘 날 수 있으니, 감기 조심하세요."
-        elif diff_t > 10:
-            story += f"\n\n일교차가 {diff_t:.1f}도로 제법 큽니다. 외출하실 때 체온 조절에 신경 쓰세요."
+            # 꺾은선 그래프로 추이 보기
+            st.write("📈 **연도별 생일 기온 변화 추이**")
+            chart_data = stats_df[['연도', '최고기온(℃)']].set_index('연도')
+            st.line_chart(chart_data)
         
-        # 타이핑 애니메이션 적용하여 출력
-        render_typewriter(story)
-
+    else:
+        st.warning("해당 기간에 유효한 온도 데이터가 존재하지 않습니다.")
 else:
-    st.error("선택하신 날짜의 데이터를 찾을 수 없습니다.")
+    st.error("입력하신 날짜의 데이터를 찾을 수 없습니다. (윤달 등 날짜를 확인해 주세요)")
