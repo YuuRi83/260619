@@ -1,156 +1,232 @@
 import streamlit as st
-import time
 
-# --- 1. 페이지 기본 설정 ---
-st.set_page_config(
-    page_title="익명 응원 트리 🎄",
-    page_icon="💌",
-    layout="centered"
-)
+# --- 1. 페이지 설정 ---
+st.set_page_config(page_title="마법의 익명 트리 🎄", page_icon="✨", layout="centered")
 
 # --- 2. 초기 데이터 (세션 상태) 설정 ---
-# 10개의 오너먼트 메시지 저장용 딕셔너리
 if 'tree_messages' not in st.session_state:
     st.session_state.tree_messages = {i: "" for i in range(1, 11)}
 
-# 현재 선택된 오너먼트 번호
-if 'selected_ornament' not in st.session_state:
-    st.session_state.selected_ornament = None
-
-# --- 3. 화려한 커스텀 CSS ---
+# --- 3. 마법 같은 애니메이션 CSS ---
 st.markdown("""
 <style>
-    .main-title {
-        text-align: center;
-        font-size: 2.8rem;
-        color: #2E7D32;
-        text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-        margin-bottom: 10px;
-    }
-    .sub-title {
-        text-align: center;
-        color: #555;
-        font-weight: bold;
-        margin-bottom: 30px;
-    }
-    /* 버튼(오너먼트)을 동그랗고 크게 만드는 마법 */
-    div.stButton > button {
-        width: 70px !important;
-        height: 70px !important;
-        border-radius: 50% !important;
-        font-size: 35px !important;
-        background-color: rgba(255, 255, 255, 0.9) !important;
-        border: 2px dashed #ccc !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin: auto;
-        display: block;
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:hover {
-        transform: scale(1.15);
-        border: 2px solid #FFD700 !important;
-        box-shadow: 0 0 15px #FFD700;
-        background-color: #fff !important;
-    }
-    .trunk {
-        width: 50px;
-        height: 70px;
-        background: linear-gradient(to right, #5D4037, #8D6E63);
-        margin: 0 auto;
-        border-radius: 5px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-    .message-card {
-        background: linear-gradient(135deg, #FFF9C4, #FFE082);
-        padding: 25px;
+    /* 따뜻하고 신비로운 밤하늘 배경 */
+    .tree-wrapper {
+        background: linear-gradient(180deg, #0B1D3A 0%, #172A45 60%, #1E3A5F 100%);
+        padding: 40px 0 60px 0;
         border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden; /* 눈송이가 영역 밖으로 나가지 않게 */
+    }
+    .tree-title {
         text-align: center;
-        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-        margin-top: 20px;
-        animation: fadeIn 0.8s;
+        color: #FFF3C7;
+        font-size: 1.8rem;
+        font-weight: 900;
+        margin-bottom: 20px;
+        letter-spacing: 2px;
+        text-shadow: 0 0 15px rgba(255,243,199,0.8);
+        position: relative;
+        z-index: 5;
+    }
+    
+    /* ❄️ 끊임없이 내리는 눈 애니메이션 */
+    @keyframes snowFall {
+        0% { transform: translateY(-100px) translateX(0px); opacity: 1; }
+        100% { transform: translateY(500px) translateX(30px); opacity: 0; }
+    }
+    .snow {
+        position: absolute;
+        top: -20px;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.2rem;
+        user-select: none;
+        animation: snowFall linear infinite;
+        z-index: 1;
+    }
+    /* 눈송이마다 떨어지는 속도와 위치를 다르게 설정 */
+    .snow:nth-child(1) { left: 10%; animation-duration: 4s; animation-delay: 0s; }
+    .snow:nth-child(2) { left: 25%; animation-duration: 5s; animation-delay: 1s; font-size: 0.9rem; }
+    .snow:nth-child(3) { left: 40%; animation-duration: 3.5s; animation-delay: 2s; }
+    .snow:nth-child(4) { left: 60%; animation-duration: 6s; animation-delay: 0.5s; font-size: 1.5rem; }
+    .snow:nth-child(5) { left: 75%; animation-duration: 4.5s; animation-delay: 1.5s; }
+    .snow:nth-child(6) { left: 90%; animation-duration: 5.5s; animation-delay: 0.2s; font-size: 0.8rem; }
+
+    /* 트리 영역을 고정하여 오너먼트가 자연스럽게 배치되도록 함 */
+    .tree-box {
+        position: relative;
+        width: 320px;
+        height: 420px;
+        margin: 0 auto;
+        z-index: 5;
+    }
+
+    /* ✨ 트리의 은은한 반짝임 조명 효과 */
+    @keyframes treeGlow {
+        0%, 100% { filter: drop-shadow(0 0 10px rgba(76, 175, 80, 0.3)); }
+        50% { filter: drop-shadow(0 0 25px rgba(100, 255, 100, 0.6)); }
+    }
+
+    /* CSS로 그린 자연스러운 나무 잎사귀 */
+    .tree-layer {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0; height: 0;
+        animation: treeGlow 4s infinite alternate;
+    }
+    .layer1 { bottom: 40px; border-left: 150px solid transparent; border-right: 150px solid transparent; border-bottom: 220px solid #1B5E20; }
+    .layer2 { bottom: 140px; border-left: 120px solid transparent; border-right: 120px solid transparent; border-bottom: 180px solid #2E7D32; }
+    .layer3 { bottom: 230px; border-left: 90px solid transparent; border-right: 90px solid transparent; border-bottom: 140px solid #4CAF50; }
+    
+    /* 나무 기둥 */
+    .trunk {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 45px;
+        height: 50px;
+        background: linear-gradient(to right, #4E342E, #3E2723);
+        border-radius: 4px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    /* 🌟 오너먼트의 반짝임 & 살랑거리는 애니메이션 */
+    @keyframes sway {
+        0%, 100% { transform: rotate(-10deg); filter: brightness(1); }
+        50% { transform: rotate(10deg); filter: brightness(1.3) drop-shadow(0 0 10px rgba(255,215,0,0.8)); }
+    }
+    .ornament {
+        position: absolute;
+        font-size: 35px;
+        cursor: pointer;
+        animation: sway 3s infinite ease-in-out;
+        transform-origin: top center;
+        transition: transform 0.2s;
+        z-index: 10;
+    }
+    /* 각 오너먼트가 제각각 움직이도록 딜레이 추가 */
+    .ornament:nth-child(even) { animation-duration: 3.5s; animation-direction: reverse; }
+    .ornament:nth-child(3n) { animation-duration: 4s; }
+
+    .ornament:hover {
+        z-index: 20;
+        transform: scale(1.3) !important;
+        filter: drop-shadow(0 0 20px #FFD700);
+    }
+    
+    /* 호버 시 나타나는 예쁜 말풍선 툴팁 */
+    .message-tooltip {
+        visibility: hidden;
+        width: 220px;
+        background-color: rgba(255, 255, 255, 0.95);
+        color: #2c3e50;
+        text-align: center;
+        border-radius: 15px;
+        padding: 15px;
+        position: absolute;
+        bottom: 130%;
+        left: 50%;
+        margin-left: -110px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        opacity: 0;
+        transition: opacity 0.3s, bottom 0.3s;
+        font-size: 0.95rem;
+        font-weight: 800;
+        pointer-events: none;
+    }
+    .message-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -8px;
+        border-width: 8px;
+        border-style: solid;
+        border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+    }
+    .ornament:hover .message-tooltip {
+        visibility: visible;
+        opacity: 1;
+        bottom: 110%;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. 메인 화면 ---
-st.markdown("<p class='main-title'>🎄 우리 반 익명 응원 트리 🎄</p>", unsafe_allow_html=True)
-st.markdown("<p class='sub-title'>하얀색 오너먼트(⚪)를 눌러 친구들에게 따뜻한 메시지를 달아주세요!</p>", unsafe_allow_html=True)
+# --- 4. 오너먼트 자연스러운 배치 좌표 ---
+ornament_positions = {
+    1: {"bottom": "340px", "left": "calc(50% - 15px)"},  
+    2: {"bottom": "280px", "left": "calc(50% - 60px)"},
+    3: {"bottom": "260px", "left": "calc(50% + 20px)"},
+    4: {"bottom": "190px", "left": "calc(50% - 90px)"},
+    5: {"bottom": "210px", "left": "calc(50% - 10px)"},
+    6: {"bottom": "180px", "left": "calc(50% + 50px)"},
+    7: {"bottom": "110px", "left": "calc(50% - 120px)"},
+    8: {"bottom": "130px", "left": "calc(50% - 40px)"},
+    9: {"bottom": "90px",  "left": "calc(50% + 30px)"},
+    10: {"bottom": "120px", "left": "calc(50% + 80px)"}
+}
 
-# 오너먼트 아이콘 매핑 함수 (메시지가 있으면 예쁜 아이콘, 없으면 하얀 구슬)
-def get_icon(idx):
-    filled_icons = ["🌟", "🍎", "🎀", "🔔", "🎁", "🔮", "💖", "🌈", "🧸", "🍀"]
-    return filled_icons[idx-1] if st.session_state.tree_messages[idx] else "⚪"
+# --- 5. 트리 렌더링 로직 (눈 애니메이션 포함) ---
+html_elements = []
+html_elements.append("<div class='tree-wrapper'>")
 
-st.write("")
+# 배경에 내리는 눈송이들 추가
+for _ in range(6):
+    html_elements.append("<div class='snow'>❄️</div>")
 
-# --- 5. 트리 모양 레이아웃 설계 (피라미드 형태) ---
-# 1층 (1개)
-c1_1, c1_2, c1_3 = st.columns([2, 1, 2])
-with c1_2:
-    if st.button(get_icon(1), key="btn1"): st.session_state.selected_ornament = 1
+html_elements.append("<div class='tree-title'>✨ 밤하늘의 익명 트리 ✨</div>")
+html_elements.append("<div class='tree-box'>")
+html_elements.append("<div class='tree-layer layer1'></div>")
+html_elements.append("<div class='tree-layer layer2'></div>")
+html_elements.append("<div class='tree-layer layer3'></div>")
+html_elements.append("<div class='trunk'></div>")
 
-# 2층 (2개)
-c2_1, c2_2, c2_3, c2_4, c2_5 = st.columns([1.5, 1, 0.2, 1, 1.5])
-with c2_2:
-    if st.button(get_icon(2), key="btn2"): st.session_state.selected_ornament = 2
-with c2_4:
-    if st.button(get_icon(3), key="btn3"): st.session_state.selected_ornament = 3
+# 오너먼트 생성
+filled_icons = ["🌟", "🍎", "🎀", "🔔", "🎁", "🔮", "💖", "🌈", "🧸", "🍀"]
 
-# 3층 (3개)
-c3_1, c3_2, c3_3, c3_4, c3_5 = st.columns([1, 1, 1, 1, 1])
-with c3_2:
-    if st.button(get_icon(4), key="btn4"): st.session_state.selected_ornament = 4
-with c3_3:
-    if st.button(get_icon(5), key="btn5"): st.session_state.selected_ornament = 5
-with c3_4:
-    if st.button(get_icon(6), key="btn6"): st.session_state.selected_ornament = 6
-
-# 4층 (4개)
-c4_1, c4_2, c4_3, c4_4, c4_5, c4_6 = st.columns([0.5, 1, 1, 1, 1, 0.5])
-with c4_2:
-    if st.button(get_icon(7), key="btn7"): st.session_state.selected_ornament = 7
-with c4_3:
-    if st.button(get_icon(8), key="btn8"): st.session_state.selected_ornament = 8
-with c4_4:
-    if st.button(get_icon(9), key="btn9"): st.session_state.selected_ornament = 9
-with c4_5:
-    if st.button(get_icon(10), key="btn10"): st.session_state.selected_ornament = 10
-
-# 나무 기둥
-st.markdown("<div class='trunk'></div>", unsafe_allow_html=True)
-st.write("---")
-
-# --- 6. 메시지 작성 및 확인 섹션 ---
-if st.session_state.selected_ornament is not None:
-    idx = st.session_state.selected_ornament
+for idx in range(1, 11):
+    msg = st.session_state.tree_messages[idx]
+    icon = filled_icons[idx-1] if msg else "🫧" 
+    tooltip_text = msg if msg else "비어있는 자리입니다.<br>아래에서 메시지를 달아주세요!"
     
-    # 이미 메시지가 있는 경우 (확인 모드)
-    if st.session_state.tree_messages[idx]:
-        st.markdown(f"""
-        <div class='message-card'>
-            <h3 style='color: #D84315; margin-bottom: 10px;'>💌 누군가 남긴 따뜻한 한마디</h3>
-            <p style='font-size: 1.5rem; font-weight: bold; color: #333;'>"{st.session_state.tree_messages[idx]}"</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        if st.button("닫기 ✖️"):
-            st.session_state.selected_ornament = None
-            st.rerun()
+    pos = ornament_positions[idx]
+    ornament_html = f"""
+    <div class='ornament' style='bottom: {pos["bottom"]}; left: {pos["left"]};'>
+        {icon}
+        <div class='message-tooltip'>{tooltip_text}</div>
+    </div>
+    """
+    html_elements.append(ornament_html)
+
+html_elements.append("</div></div>")
+st.markdown("".join(html_elements), unsafe_allow_html=True)
+
+# --- 6. 메시지 작성 폼 ---
+st.markdown("### 💌 나무에 마음 달기")
+st.write("위 나무에 마우스를 올려 메시지를 확인하고, 빈자리에 새로운 메시지를 추가해 보세요.")
+
+empty_slots = [i for i in range(1, 11) if not st.session_state.tree_messages[i]]
+
+if not empty_slots:
+    st.success("나무에 모든 마음이 가득 찼습니다! 🎄✨")
+    st.snow() # Streamlit 기본 눈 효과 추가 실행
+else:
+    with st.form("message_form", clear_on_submit=True):
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            selected_idx = st.selectbox("위치 선택", empty_slots, format_func=lambda x: f"{x}번 자리 🫧")
+        with col2:
+            new_msg = st.text_input("메시지 (최대 40자)", max_chars=40, placeholder="친구에게 전할 따뜻한 한마디...")
             
-    # 메시지가 없는 경우 (작성 모드)
-    else:
-        st.info(f"✨ {idx}번 오너먼트는 비어있어요. 첫 번째 응원 메시지를 달아주세요!")
+        submit = st.form_submit_button("트리에 매달기 🎀")
         
-        # 텍스트 입력 폼
-        with st.form(key=f"form_{idx}"):
-            new_msg = st.text_input("👇 여기에 익명 메시지를 적어주세요 (최대 50자)", max_chars=50)
-            submit = st.form_submit_button("나무에 예쁘게 매달기 🎀")
-            
-            if submit:
-                if new_msg.strip() == "":
-                    st.warning("메시지를 입력해야 매달 수 있어요!")
-                else:
-                    st.session_state.tree_messages[idx] = new_msg
-                    st.session_state.selected_ornament = None # 작성 완료 후 닫기
-                    st.balloons() # 축하 풍선 효과!
-                    st.rerun() # 화면 새로고침하여 트리 업데이트
+        if submit:
+            if new_msg.strip():
+                st.session_state.tree_messages[selected_idx] = new_msg
+                st.rerun()
+            else:
+                st.warning("메시지를 입력해주세요!")
