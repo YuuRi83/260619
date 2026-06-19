@@ -23,9 +23,9 @@ def load_data():
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
     df = df.dropna(subset=['날짜'])
     
-    # 연도, 연대 파생 변수 생성
-    df['연도'] = df['날짜'].dt.year
-    df['연대'] = (df['연도'] // 10) * 10 # 예: 1987 -> 1980
+    # 연도, 연대 파생 변수 생성 (정수형으로 명시적 변환하여 소수점 방지)
+    df['연도'] = df['날짜'].dt.year.astype(int)
+    df['연대'] = ((df['연도'] // 10) * 10).astype(int) # 예: 1987 -> 1980
     return df
 
 with st.spinner("기상 관측 영수증 단말기 부팅 중..."):
@@ -51,8 +51,19 @@ st.sidebar.markdown("영수증을 발급할 두 기간을 선택하세요.")
 default_base_idx = decades.index(1980) if 1980 in decades else 0
 default_target_idx = decades.index(2020) if 2020 in decades else len(decades) - 1
 
-base_decade = st.sidebar.selectbox("과거 (기준 연대)", decades, index=default_base_idx)
-target_decade = st.sidebar.selectbox("현재 (비교 대상 연대)", decades, index=default_target_idx)
+# format_func를 사용하여 천 단위 콤마(,) 제거 및 '년대' 텍스트 추가
+base_decade = st.sidebar.selectbox(
+    "과거 (기준 연대)", 
+    decades, 
+    index=default_base_idx,
+    format_func=lambda x: f"{x}년대"
+)
+target_decade = st.sidebar.selectbox(
+    "현재 (비교 대상 연대)", 
+    decades, 
+    index=default_target_idx,
+    format_func=lambda x: f"{x}년대"
+)
 
 # 연대별 평균 통계 계산 함수 (1년 기준 평균 발생 일수)
 def get_decade_stats(decade):
